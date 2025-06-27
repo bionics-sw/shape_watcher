@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Refresh" content="5">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Cobra summary homepage</title>
+</head>
+<body>
+    <h1 class="text-3xl font-bold underline">{{ message }}</h1>
+    <input type="button" class="bg-green-700 hover:bg-green-600 text-white rounded px-4 py-2" value="このページを再読込します" onclick="window.location.reload();" />
+    <table class="table-auto">
+        <thead>
+          <tr>
+            <th class="px-4 py-2">#</th>
+            <th class="px-4 py-2">ID</th>
+            <th class="px-4 py-2">HR</th>
+            <th class="px-4 py-2">SBP</th>
+            <th class="px-4 py-2">DBP</th>
+            <th class="px-4 py-2">SPO2</th>
+            <th class="px-4 py-2">LFHF</th>
+            <th class="px-4 py-2">PPG</th>
+            <th class="px-4 py-2">measured</th>
+            <th class="px-4 py-2">PPG rel</th>
+            <th class="px-4 py-2">SPO2 rel</th>
+            <th class="px-4 py-2">SPO2 sd</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="border px-4 py-2">{{ identifier }}</td>
+            <td class="border px-4 py-2">{{ vitalinfo.person_identifier }}</td>
+            <td class="border px-4 py-2">{{ vitalinfo.hr }}</td>
+            <td class="border px-4 py-2">{{ vitalinfo.sbp }}</td>
+            <td class="border px-4 py-2">{{ vitalinfo.dbp }}</td>
+            <td class="border px-4 py-2">{{ vitalinfo.spo2 }}</td>
+            <td class="border px-4 py-2">{{ vitalinfo.lfhf }}</td>
+            <td class="border px-4 py-2">{# vitalinfo.ppg #}</td>
+            <td class="border px-4 py-2">{{ vitalinfo.measured_at }}</td>
+            <td class="border px-4 py-2">{{ vitalinfo.ppg_reliability }}</td>
+            <td class="border px-4 py-2">{{ vitalinfo.spo2_reliability }}</td>
+            <td class="border px-4 py-2">{{ vitalinfo.spo2_sd }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <h4 >{{ irstring }}</h4>
+      <h4 >{{ redstring }}</h4>
+</body>
+</html>
+
