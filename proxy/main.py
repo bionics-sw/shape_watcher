@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Form, Request, status
+from fastapi import FastAPI, Form, Request, status, Body
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
@@ -76,6 +76,26 @@ async def get_people(people_id: int):
         "token": "DIR29Fsni1DNOgWHkj85CA"
     }
 
+# In-memory users list for demonstration
+users_db = [
+    {
+        "person_identifier": 1,
+        "email": "taro@abc.com",
+        "name": "山田 太郎",
+        "send_email": "true"
+    },
+    {
+        "person_identifier": 2,
+        "email": "hanako@abc.com",
+        "name": "花子 山田",
+        "send_email": "false"
+    }
+]
+
+@app.get("/api/v1/people")
+async def get_all_people():
+    return JSONResponse(content=users_db, status_code=200)
+
 @app.post("/api/v1/vital_signs")
 async def post_vital(\
     person_identifier: int = Form(), hr: int = Form(),\
@@ -96,6 +116,28 @@ async def post_vital(\
     vitalinfo.spo2_sd = spo2_sd
     str_to_intlist(vitalinfo.ppg)
     return JSONResponse(content={}, status_code=status.HTTP_200_OK)
+
+@app.post("/api/v1/people")
+async def create_people(
+    person_identifier: int = Body(...),
+    email: str = Body(...),
+    name: str = Body(...),
+    send_email: str = Body(...)
+):
+    # Dummy response, echoing back the received data
+    return JSONResponse(content={
+        "person_identifier": person_identifier,
+        "email": email,
+        "name": name,
+        "send_email": send_email
+    }, status_code=200)
+
+@app.delete("/api/v1/people/{person_identifier}")
+async def delete_people(person_identifier: int):
+    global users_db
+    # Remove user with matching person_identifier
+    users_db = [user for user in users_db if user["person_identifier"] != person_identifier]
+    return JSONResponse(content={"result": "deleted", "person_identifier": person_identifier}, status_code=200)
 
 if __name__ == "__main__":
     import uvicorn
