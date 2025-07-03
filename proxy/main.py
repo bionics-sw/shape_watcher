@@ -3,6 +3,9 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
+import os
+from psycopg2 import pool
+from dotenv import load_dotenv
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -21,18 +24,30 @@ class VitalInfo:
     spo2_sd: str = "0"
 
 vitalinfo = VitalInfo()
-'''
-ppgchart = json.loads("{type: 'line', data: {"\
-      "datasets: [{ label: 'IR',"\
-          "data: [],"\
-          "borderColor: 'rgba(255,0,0,1)', backgroundColor: 'rgba(0,0,0,0)' },"\
-        "{ label: 'RED',"\
-          "data: [],"\
-          "borderColor: 'rgba(0,0,255,1)', backgroundColor: 'rgba(0,0,0,0)' } ], },}")
-'''
 
 irstring = ""
 redstring = ""
+
+# Load .env file
+load_dotenv()
+
+# Get the connection string from the environment variable
+connection_string = os.getenv('DATABASE_URL')
+# Create a connection pool
+connection_pool = pool.SimpleConnectionPool(
+    1,  # Minimum number of connections in the pool
+    10,  # Maximum number of connections in the pool
+    connection_string
+)
+
+# Check if the pool was created successfully
+if connection_pool:
+    print("Connection pool created successfully")
+
+# Get a connection from the pool
+conn = connection_pool.getconn()
+# Create a cursor object
+cur = conn.cursor()
 
 def le_string_to_int(hex_string):
     # Convert to bytes in little-endian order
