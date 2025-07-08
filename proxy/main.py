@@ -4,8 +4,10 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 import os
-from psycopg2 import pool
+from psycopg2.pool import ThreadedConnectionPool
 from dotenv import load_dotenv
+#import psycopg2
+import datetime
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -29,15 +31,19 @@ irstring = ""
 redstring = ""
 
 # Load .env file
-load_dotenv()
+#load_dotenv()
 
 # Get the connection string from the environment variable
-connection_string = os.getenv('DATABASE_URL')
+#connection_string = os.getenv('DATABASE_URL')
 # Create a connection pool
-connection_pool = pool.SimpleConnectionPool(
+connection_pool = ThreadedConnectionPool(
     1,  # Minimum number of connections in the pool
     10,  # Maximum number of connections in the pool
-    connection_string
+    #connection_string
+    host="ep-yellow-grass-aa3kbeuw-pooler.westus3.azure.neon.tech",
+    database="neondb",
+    user="neondb_owner",
+    password="npg_apYyE5TbPlr0"
 )
 
 # Check if the pool was created successfully
@@ -46,8 +52,25 @@ if connection_pool:
 
 # Get a connection from the pool
 conn = connection_pool.getconn()
+'''
+conn = psycopg2.connect(
+    host="ep-yellow-grass-aa3kbeuw-pooler.westus3.azure.neon.tech",
+    database="neondb",
+    user="neondb_owner",
+    password="npg_apYyE5TbPlr0"
+)
+'''
 # Create a cursor object
 cur = conn.cursor()
+# Set the schema
+cur.execute('SET search_path TO "cobrahealthcare";')
+
+# Print out all tables in the selected schema for testing
+cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'cobrahealthcare';")
+tables = cur.fetchall()
+print('Tables in schema cobrahealthcare:')
+for table in tables:
+    print(table[0])
 
 def le_string_to_int(hex_string):
     # Convert to bytes in little-endian order
@@ -139,13 +162,53 @@ async def create_people(
     name: str = Body(...),
     send_email: str = Body(...)
 ):
-    # Dummy response, echoing back the received data
-    return JSONResponse(content={
-        "person_identifier": person_identifier,
-        "email": email,
-        "name": name,
-        "send_email": send_email
-    }, status_code=200)
+    print(name)
+    conn = connection_pool.getconn()
+    if conn is None:
+        return JSONResponse(content={"error": "Failed to get a connection from the pool"}, status_code=500)
+    # Store received data into the SQL database
+    try:
+        # Generate RFC3339 datetime with timezone
+        now_rfc3339 = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute('SET search_path TO "cobrahealthcare";')
+                cur.execute(
+                    """
+                    INSERT INTO people (
+                        person_identifier, email, name, send_email,
+                        mini_pc_id, uuid, created_at, updated_at, token
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        person_identifier,
+                        email,
+                        name,
+                        send_email,
+                        1,  # mini_pc_id dummy
+                        '00000000-0000-0000-0000-000000000000',  # uuid dummy
+                        now_rfc3339,  # created_at
+                        now_rfc3339,  # updated_at
+                        'DUMMYTOKEN123'  # token dummy
+                    )
+                )
+        connection_pool.putconn(conn)
+        return JSONResponse(content={
+            "person_identifier": person_identifier,
+            "email": email,
+            "name": name,
+            "send_email": send_email,
+            "mini_pc_id": 1,
+            "uuid": '00000000-0000-0000-0000-000000000000',
+            "created_at": now_rfc3339,
+            "updated_at": now_rfc3339,
+            "token": 'DUMMYTOKEN123',
+            "result": "stored in db"
+        }, status_code=200)
+    except Exception as e:
+        connection_pool.putconn(conn)
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 @app.delete("/api/v1/people/{person_identifier}")
 async def delete_people(person_identifier: int):
